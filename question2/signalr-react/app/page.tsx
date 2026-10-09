@@ -26,11 +26,27 @@ export default function Home() {
     .withUrl('http://localhost:5282/hubs/pizza')
     .build();
 
+    // Écoute des messages du hub
+    newHubConnection.on("UpdatePage", (data) => {
+      console.log(data)
+      applyEvent(data)
+    })
+
     // TODO: Mettre isConnected à true seulement une fois que la connection au Hub est faite
-    setIsConnected(true);
+    // On se connecte au Hub  
+    newHubConnection
+        .start()
+        .then(() => {
+            console.log('La connexion est active!');
+            setIsConnected(true);
+          })
+        .catch(err => console.log('Error while starting connection: ' + err));
+
+    setHubConnection(newHubConnection);
   }
 
   function selectChoice(selectedChoice:number) {
+    hubConnection?.invoke("SelectChoice", selectedChoice)
     setSelectedChoice(selectedChoice);
   }
 
@@ -39,9 +55,39 @@ export default function Home() {
   }
 
   function addMoney() {
+    hubConnection?.invoke("AddMoney", selectedChoice)
   }
 
   function buyPizza() {
+    hubConnection?.invoke("BuyPizza", selectedChoice)
+  }
+
+  async function applyEvent(event : any){
+    console.log(`applying event : ${event.eventType}`)
+    switch(event.eventType){
+      case "UpdateNbUsers":
+        setUserCount(event.nbUsers)
+        break;
+
+      case "UpdatePizzaPrice":
+        setPizzaPrice(event.price)
+        break;
+
+      case "UpdateNbPizzasAndMoney":
+        setNbPizzas(event.nbPizzas)
+        setMoney(event.money)
+        break;
+
+      case "UpdateMoney":
+        setMoney(event.money)
+        break;
+    }
+
+    if (event.events){
+      for (let e of event.events){
+        applyEvent(e)
+      }
+    }
   }
 
   return (
